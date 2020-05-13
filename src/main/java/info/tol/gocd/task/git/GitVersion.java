@@ -50,7 +50,7 @@ public class GitVersion {
 
   private final String         name;
   private final String         hash;
-  private final int            build;
+  private final int            count;
 
   private final String         branch;
   private final Version        version;
@@ -61,25 +61,18 @@ public class GitVersion {
    *
    * @param hash
    * @param name
-   * @param build
+   * @param count
    * @param branch
    * @param version
    * @param dateTime
    */
-  private GitVersion(String hash, String name, int build, String branch, Version version, OffsetDateTime dateTime) {
+  private GitVersion(String hash, String name, int count, String branch, Version version, OffsetDateTime dateTime) {
     this.name = name;
     this.hash = hash;
-    this.build = build;
+    this.count = count;
     this.branch = branch;
     this.version = version;
     this.dateTime = dateTime;
-  }
-
-  /**
-   * Gets the tag name.
-   */
-  public final String getName() {
-    return name;
   }
 
   /**
@@ -92,14 +85,21 @@ public class GitVersion {
   /**
    * Gets the {@link #hash}.
    */
-  public final int getBuild() {
-    return build;
+  public final int getCount() {
+    return count;
+  }
+
+  /**
+   * Gets the tag name.
+   */
+  public final String getTagName() {
+    return name;
   }
 
   /**
    * Gets the {@link #branch}.
    */
-  public final String getBranch() {
+  public final String getBranchName() {
     return branch;
   }
 
@@ -157,14 +157,13 @@ public class GitVersion {
       try (RevWalk walk = new RevWalk(repo)) {
         RevCommit revCommit = walk.parseCommit(refId);
 
-
         String branch = repo.getBranch();
         OffsetDateTime time = getTime(revCommit);
         String hash = revCommit.getName().substring(0, 9);
         try (Git git = new Git(repo)) {
           int build = getCount(git);
           Stream<TagInfo> stream = getTags(git, revCommit, walk).stream();
-          info = stream.map(i -> new GitVersion(hash, i.ref.getName(), build, branch, i.version, time)).findFirst();
+          info = stream.map(i -> new GitVersion(hash, i.getName(), build, branch, i.getVersion(), time)).findFirst();
         }
       }
     }
@@ -172,7 +171,9 @@ public class GitVersion {
     return info.orElse(null);
   }
 
-
+  /**
+   * The {@link TagInfo} class.
+   */
   private static class TagInfo implements Comparable<TagInfo> {
 
     private final Ref     ref;
@@ -201,6 +202,27 @@ public class GitVersion {
       this.version = version;
     }
 
+    /**
+     * Gets the {@link #ref}.
+     */
+    public final Ref getRef() {
+      return ref;
+    }
+
+    /**
+     * Gets the {@link #ref}.
+     */
+    public final String getName() {
+      return getRef().getName();
+    }
+
+    /**
+     * Gets the {@link #version}.
+     */
+    public final Version getVersion() {
+      return version;
+    }
+
     @Override
     public int compareTo(TagInfo o) {
       return (count == o.count) ? version.compareTo(o.version) : Integer.compare(count, o.count);
@@ -216,9 +238,8 @@ public class GitVersion {
    * Count the number of commits {@link #getCount}.
    *
    * @param git
-   * @return
-   * @throws GitAPIException
    */
+  @SuppressWarnings("unused")
   private static int getCount(Git git) throws GitAPIException {
     int count = 0;
     for (RevCommit commit : git.log().call()) {

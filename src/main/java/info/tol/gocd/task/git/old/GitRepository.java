@@ -1,5 +1,5 @@
 
-package info.tol.gocd.task.git;
+package info.tol.gocd.task.git.old;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;

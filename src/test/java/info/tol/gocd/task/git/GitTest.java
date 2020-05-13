@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import info.tol.gocd.task.git.old.GitBranch;
+import info.tol.gocd.task.git.old.GitRepository;
 import info.tol.gocd.util.Version;
 
 /**

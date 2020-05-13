@@ -1,29 +1,36 @@
-# GoCD task plugin for git info
+# GoCD task plugin for GIT Info
 
-This is merely a skeleton plugin that plugin developers can fork to get quickly 
-started with writing task plugins for GoCD. It works out of the box, but you should change 
-it to do something besides executing `curl`.
- 
-All the documentation is hosted at https://plugin-api.gocd.io/current/tasks.
+The GIT Info plugin implements a GoCD task to fetch informations from the git repositories in the pipeline. The plugin at least an *.env* file on the project directory, containing informations of all repositories (prefixed with the module name).
+The *.env* file will contain a build number as well, that is calculate by the sum of all *GIT_COMMITS* in the project.
 
-
-
-## Getting started
-
-The git plugin supports to fetch informations from the GIT repository. Once included as task, it will look for GIT repositories and provide informations into a local file *.env*.
-
-The *.env* file will be generated for every repository and once globaly providing informations for all repository. Each environment variable will be prefixed with the name of the repository in upper cases.
+In each repository another *.env* file will be created, where all variables are prefixed with *GIT_*.
 
 ```plain
-GIT_RELEASE=1.0
-GIT_VERSION=1.0.1
-GIT_BUILD=52
+GIT_HASH=193ab095a                      # The short hash id in GIT
+GIT_DATE=2020-05-12T11:08:19+02:00      # The date/time as ISO
 GIT_BRANCH=develop
 GIT_TAG=refs/tags/version/1.0/1
-GIT_HASH=193ab095a
-GIT_DATE=2020-05-12T11:08:19+02:00
+GIT_COMMITS=52                          # Is the number of commits
+GIT_RELEASE=1.0                         # Release number as MAJOR.MINOR
+GIT_VERSION=1.0.1                       # Version number as MAJOR.MINOR.PATCH
+
+BUILD_NUMBER=123
 ```
 
+## Replacing property files
+
+Optionally the plugin allows to define a file pattern. In that case the plugin replaces all properties defined in the file with the environment variables. The plugin will consider the local defined environment variables and provides as fallback the global environment.
+
+e.g. will catch all files with extension *.pri* or *.pro* and replace all definitions ```GIT_VERSION=[SOMETHING]``` with the environment variable.
+
+```plain
+*.{pri,pro}
+```
+
+
+## Environment structure
+
+Consumers of the *.env* files are inherited. Means that a *.env* definition of a *GIT module* will inherit the definition of the global environment. This is important, as the *BUILD_NUMBER* will be defined only on the global *.env* file.
 
 
 ## Building the code base

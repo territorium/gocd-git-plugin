@@ -15,9 +15,14 @@
 
 package info.tol.gocd.util;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -87,22 +92,6 @@ public class Environment {
   }
 
   /**
-   * Replace all parameters that have values in the environment.
-   *
-   * @param input
-   */
-  public final String replaceModuleName(String input) {
-    String text = input;
-    Matcher matcher = Environment.PARAMS.matcher(input);
-    while (matcher.find() && this.environment.containsKey(matcher.group(1))) {
-      String key = matcher.group(1);
-      String value = this.environment.get(key);
-      text = text.replace("$" + key, value);
-    }
-    return text;
-  }
-
-  /**
    * Replaces the indexed or named placeholder's with the the parameter values.
    *
    * @param pattern
@@ -157,6 +146,22 @@ public class Environment {
       params.put(name, matcher.group(name));
     }
     return params;
+  }
+
+  /**
+   * Load additional environment variables.
+   * 
+   * @param file
+   */
+  public final Environment load(File file) throws FileNotFoundException, IOException {
+    if (file.exists()) {
+      try (FileReader reader = new FileReader(file)) {
+        Properties properties = new Properties();
+        properties.load(reader);
+        properties.forEach((n, v) -> this.environment.put("" + n, "" + v));
+      }
+    }
+    return this;
   }
 
   /**

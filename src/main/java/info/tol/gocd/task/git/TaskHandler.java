@@ -73,26 +73,41 @@ public class TaskHandler implements RequestHandler {
   @Override
   public GoPluginApiResponse handle(GoPluginApiRequest request) {
     TaskRequest task = TaskRequest.of(request);
+    String files = task.getConfig().getValue("files");
     File workingDir = new File(task.getWorkingDirectory()).getAbsoluteFile();
 
-    try (PrintWriter writer = new PrintWriter(new File(workingDir, ".env"))) {
-      if (new File(workingDir, ".git").exists()) {
-        this.console.printLine("Process GIT Repository!");
-        GitVersion git = GitVersion.getLatestVersion(workingDir);
-        printEnvironment(git, "GIT", writer);
-      }
+    try {
+      try (PrintWriter writerRoot = new PrintWriter(new File(workingDir, ".env"))) {
+        int buildNumber = 0;
 
-      for (File folder : workingDir.listFiles()) {
-        if (folder.isDirectory() && new File(folder, ".git").exists()) {
-          GitVersion git = GitVersion.getLatestVersion(folder);
-          if (git != null) {
-            this.console.printLine("Processing GIT Repository '" + folder.getName() + "'!");
-            try (PrintWriter writer2 = new PrintWriter(new File(folder, ".env"))) {
-              String prefix = folder.getName().toUpperCase();
-              printEnvironment(git, prefix, writer2);
-              printEnvironment(git, prefix, writer);
+        if (new File(workingDir, ".git").exists()) {
+          this.console.printLine("Process GIT Repository!");
+          GitVersion git = GitVersion.getLatestVersion(workingDir);
+          printEnvironment(git, "GIT", writerRoot);
+          buildNumber += git.getCount();
+        }
+
+        for (File folder : workingDir.listFiles()) {
+          if (folder.isDirectory() && new File(folder, ".git").exists()) {
+            GitVersion git = GitVersion.getLatestVersion(folder);
+            if (git != null) {
+              this.console.printLine("Processing GIT Repository '" + folder.getName() + "'!");
+              try (PrintWriter writerModule = new PrintWriter(new File(folder, ".env"))) {
+                String prefix = folder.getName().toUpperCase();
+                printEnvironment(git, prefix, writerRoot);
+                printEnvironment(git, "GIT", writerModule);
+              }
+              buildNumber += git.getCount();
             }
           }
+        }
+
+        writerRoot.printf("BUILD_NUMBER=%s\n", buildNumber);
+      }
+
+      if (files != null && !files.trim().isEmpty()) {
+        for (GitProperties file : GitProperties.list(workingDir, files.trim())) {
+          file.replace();
         }
       }
 
@@ -111,13 +126,13 @@ public class TaskHandler implements RequestHandler {
    * @param writer
    */
   private void printEnvironment(GitVersion git, String prefix, PrintWriter writer) throws Exception {
-    writer.printf("%s_RELEASE=%s\n", prefix, git.getVersion().toString("0.0-0"));
-    writer.printf("%s_VERSION=%s\n", prefix, git.getVersion().toString("0.0.0"));
-    writer.printf("%s_BUILD=%s\n", prefix, git.getBuild());
-    writer.printf("%s_BRANCH=%s\n", prefix, git.getBranch());
-    writer.printf("%s_TAG=%s\n", prefix, git.getName());
     writer.printf("%s_HASH=%s\n", prefix, git.getHash());
     writer.printf("%s_DATE=%s\n", prefix, git.getISOTime());
+    writer.printf("%s_BRANCH=%s\n", prefix, git.getBranchName());
+    writer.printf("%s_TAG=%s\n", prefix, git.getTagName());
+    writer.printf("%s_COMMITS=%s\n", prefix, git.getCount());
+    writer.printf("%s_RELEASE=%s\n", prefix, git.getVersion().toString("0.0-0"));
+    writer.printf("%s_VERSION=%s\n", prefix, git.getVersion().toString("0.0.0"));
     writer.println();
   }
 }

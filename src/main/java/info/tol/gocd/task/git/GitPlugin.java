@@ -72,7 +72,7 @@ public class GitPlugin implements GoPlugin {
           return new ViewHandler("GIT Info", "/task.template.html").handle(request);
 
         case Request.TASK_CONFIG:
-          return new ConfigHandler().handle(request);
+          return GitConfig.createGoApiResponse();
 
         case Request.TASK_VALIDATE:
           return new ValidateHandler().handle(request);
