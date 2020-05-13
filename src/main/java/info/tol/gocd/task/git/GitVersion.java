@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import info.tol.gocd.util.Version;
 
@@ -47,8 +48,10 @@ public class GitVersion {
       "(?<major>\\d+)[./](?<minor>\\d+)(?:[./](?<patch>\\d+))?(?:-(?<name>[a-zA-Z0-9.]+))?(?:\\+(?<build>[a-zA-Z0-9.]+))?");
 
 
-  private final String         hash;
   private final String         name;
+  private final String         hash;
+  private final int            build;
+
   private final String         branch;
   private final Version        version;
   private final OffsetDateTime dateTime;
@@ -58,13 +61,15 @@ public class GitVersion {
    *
    * @param hash
    * @param name
+   * @param build
    * @param branch
    * @param version
    * @param dateTime
    */
-  private GitVersion(String hash, String name, String branch, Version version, OffsetDateTime dateTime) {
-    this.hash = hash;
+  private GitVersion(String hash, String name, int build, String branch, Version version, OffsetDateTime dateTime) {
     this.name = name;
+    this.hash = hash;
+    this.build = build;
     this.branch = branch;
     this.version = version;
     this.dateTime = dateTime;
@@ -82,6 +87,13 @@ public class GitVersion {
    */
   public final String getHash() {
     return hash;
+  }
+
+  /**
+   * Gets the {@link #hash}.
+   */
+  public final int getBuild() {
+    return build;
   }
 
   /**
@@ -145,12 +157,14 @@ public class GitVersion {
       try (RevWalk walk = new RevWalk(repo)) {
         RevCommit revCommit = walk.parseCommit(refId);
 
+
         String branch = repo.getBranch();
         OffsetDateTime time = getTime(revCommit);
         String hash = revCommit.getName().substring(0, 9);
         try (Git git = new Git(repo)) {
-          info = getTags(git, revCommit, walk).stream()
-              .map(i -> new GitVersion(hash, i.ref.getName(), branch, i.version, time)).findFirst();
+          int build = getCount(git);
+          Stream<TagInfo> stream = getTags(git, revCommit, walk).stream();
+          info = stream.map(i -> new GitVersion(hash, i.ref.getName(), build, branch, i.version, time)).findFirst();
         }
       }
     }
@@ -198,13 +212,35 @@ public class GitVersion {
     return Instant.ofEpochMilli(instant).atZone(ZoneId.systemDefault()).toOffsetDateTime();
   }
 
-  private static Collection<TagInfo> getTags(Git git, RevCommit revCommit, RevWalk walk) throws GitAPIException {
+  /**
+   * Count the number of commits {@link #getCount}.
+   *
+   * @param git
+   * @return
+   * @throws GitAPIException
+   */
+  private static int getCount(Git git) throws GitAPIException {
+    int count = 0;
+    for (RevCommit commit : git.log().call()) {
+      count++;
+    }
+    return count;
+  }
+
+  /**
+   * Get all reachable tags, ordered by version number.
+   *
+   * @param git
+   * @param rev
+   * @param walk
+   */
+  private static Collection<TagInfo> getTags(Git git, RevCommit rev, RevWalk walk) throws GitAPIException {
     return git.tagList().call().stream().map(tag -> {
       try {
         RevCommit tagCommit = walk.parseCommit(tag.getObjectId());
-        if (walk.isMergedInto(tagCommit, revCommit)) {
+        if (walk.isMergedInto(tagCommit, rev)) {
           Version version = Version.parse(tag.getName(), PATTERN);
-          int count = RevWalkUtils.count(walk, revCommit, tagCommit);
+          int count = RevWalkUtils.count(walk, rev, tagCommit);
           return new TagInfo(tag, count, version);
         }
       } catch (Exception e) {
