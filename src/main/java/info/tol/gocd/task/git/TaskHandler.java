@@ -129,7 +129,7 @@ public class TaskHandler implements RequestHandler {
     writer.printf("%s_HASH=%s\n", prefix, git.getHash());
     writer.printf("%s_DATE=%s\n", prefix, git.getISOTime());
     writer.printf("%s_BRANCH=%s\n", prefix, git.getBranchName());
-    writer.printf("%s_TAG=%s\n", prefix, git.getTagName());
+    writer.printf("%s_TAG=%s\n", prefix, git.getTagName().substring(10)); // refs/tags/
     writer.printf("%s_COMMITS=%s\n", prefix, git.getCount());
     writer.printf("%s_RELEASE=%s\n", prefix, git.getVersion().toString("0.0-0"));
     writer.printf("%s_VERSION=%s\n", prefix, git.getVersion().toString("0.0.0"));
