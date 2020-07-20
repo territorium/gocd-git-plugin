@@ -55,6 +55,7 @@ import info.tol.gocd.util.request.RequestHandler;
 public class TaskHandler implements RequestHandler {
 
   private final JobConsoleLogger console;
+  private final long             buildNumber;
 
   /**
    * Constructs an instance of {@link TaskHandler}.
@@ -63,6 +64,7 @@ public class TaskHandler implements RequestHandler {
    */
   public TaskHandler(JobConsoleLogger console) {
     this.console = console;
+    this.buildNumber = BuildNumber.get();
   }
 
   /**
@@ -102,7 +104,10 @@ public class TaskHandler implements RequestHandler {
           }
         }
 
-        writerRoot.printf("BUILD_NUMBER=%s\n", buildNumber);
+        // Use TOLL founding time offset as build number
+        writerRoot.printf("BUILD_NUMBER=%s\n", this.buildNumber);
+        // Use GIT commits as build number
+        // writerRoot.printf("BUILD_NUMBER=%s\n", buildNumber);
       }
 
       if (files != null && !files.trim().isEmpty()) {
