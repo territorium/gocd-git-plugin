@@ -62,7 +62,7 @@ sourceSets {
 }
 
 dependencies {
-  compileOnly group: 'cd.go.plugin', name: 'go-plugin-api', version: '19.2.0'
+  compileOnly group: 'cd.go.plugin', name: 'go-plugin-api', version: '20.9.0'
   compile group: 'org.glassfish', name: 'javax.json', version: '1.1.4'
   // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit
   compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '5.7.0.202003110725-r'
